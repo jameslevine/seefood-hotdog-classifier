@@ -5,8 +5,11 @@ Upload an image; SeeFood returns a single definitive verdict — **Hot Dog** or
 **Not Hot Dog** — with a model-confidence score, a one-sentence analyst
 rationale, and a full audit trail.
 
-- **Live app:** _(added after deploy)_
-- **Classify:** `/` · **Dashboard:** `/dashboard` · **Health:** `/api/health`
+- **Live app:** https://seefood-hotdog-classifier.vercel.app
+- **Classify:** [`/`](https://seefood-hotdog-classifier.vercel.app) ·
+  **Dashboard:** [`/dashboard`](https://seefood-hotdog-classifier.vercel.app/dashboard) ·
+  **Health:** [`/api/health`](https://seefood-hotdog-classifier.vercel.app/api/health)
+- **Source:** https://github.com/jameslevine/seefood-hotdog-classifier
 
 ---
 
