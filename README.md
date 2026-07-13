@@ -6,127 +6,200 @@ Upload an image; SeeFood returns a single definitive verdict — **Hot Dog** or
 rationale, and a full audit trail.
 
 - **Live site:** https://seefood-hotdog-classifier.vercel.app
-- **Marketing:** [`/`](https://seefood-hotdog-classifier.vercel.app) ·
-  **Classify:** [`/app`](https://seefood-hotdog-classifier.vercel.app/app) ·
-  **Dashboard:** [`/dashboard`](https://seefood-hotdog-classifier.vercel.app/dashboard) ·
-  **API docs:** [`/api-access`](https://seefood-hotdog-classifier.vercel.app/api-access) ·
-  **Brand:** [`/brand`](https://seefood-hotdog-classifier.vercel.app/brand) ·
-  **Health:** [`/api/health`](https://seefood-hotdog-classifier.vercel.app/api/health)
 - **Source:** https://github.com/jameslevine/seefood-hotdog-classifier
-- **Brand guidelines:** [`BRAND.md`](BRAND.md) · **Roadmap:** [`ROADMAP.md`](ROADMAP.md)
+
+| Route | What it is |
+| ------------- | ----------------------------------------------------- |
+| `/` | Marketing landing page |
+| `/app` | The classifier (upload → verdict) |
+| `/dashboard` | Audit log + operational metrics |
+| `/api-access` | API documentation |
+| `/keys` | Self-serve API-key management (requires sign-in) |
+| `/login`, `/register` | Account auth (Amazon Cognito) |
+| `/brand` | Living design-system style guide |
+| `/contact` | Lead-capture / book-a-demo |
+| `/api/health` | Liveness/readiness probe |
+
+Companion docs: [`BRAND.md`](BRAND.md) (brand guidelines) · [`ROADMAP.md`](ROADMAP.md) (phased roadmap).
 
 ---
 
-## What it does
+## Features
 
-1. **Upload** an image (drag-and-drop or file picker; JPEG/PNG/GIF/WebP, ≤10 MB).
-2. **Classify** — the image is downscaled and sent to a vision model on
-   **Amazon Bedrock** (Claude Haiku 4.5). The model returns a structured verdict,
-   a 0–100 confidence score, and a rationale.
-3. **Persist** — a downscaled thumbnail is stored in **S3** and a metadata record
-   in **DynamoDB** for the audit log.
-4. **Review** — the **dashboard** shows operational KPIs (throughput, hot-dog
-   rate, average confidence, average latency), a verdict-distribution bar, and a
-   searchable table of recent classifications with thumbnails served via
-   presigned S3 URLs.
+**Core**
+- Image upload (drag-and-drop or picker; JPEG/PNG/GIF/WebP, ≤10 MB) → definitive
+  **Hot Dog / Not Hot Dog** verdict via **Amazon Bedrock** (Claude Haiku 4.5 vision).
+- Structured output: verdict + 0–100 confidence + one-sentence rationale, with
+  defensive JSON parsing and a keyword fallback.
+
+**Product**
+- **Audit dashboard** — KPI tiles (throughput, hot-dog rate, avg confidence, avg
+  latency), verdict-distribution bar, paginated records table with thumbnails.
+- **Marketing site** — hero + feature sections with AI-generated on-brand imagery,
+  social proof, and CTAs.
+- **Lead capture** — book-a-demo / contact-sales form with validation + honeypot.
+- **Living style guide** at `/brand`, rendered from the real design tokens.
+
+**Platform / production-readiness**
+- **Authentication** — Amazon Cognito user pool with a custom, branded
+  login/register/confirm UI (not the hosted UI).
+- **API keys** — self-serve key management (`/keys`); keys authorize programmatic
+  access to `POST /api/classify`.
+- **Persistence** — S3 thumbnails + DynamoDB audit log, queried via a
+  **`byCreatedAt` GSI** (no full-table scans) with cursor pagination.
+- **Infrastructure as Code** — everything (DynamoDB tables + GSIs, S3 bucket,
+  Cognito pool/client) in one CloudFormation stack.
+- **Testing** — Vitest unit + integration (AWS SDK mocked, >90% coverage gate) and
+  Cypress E2E.
+- **CI** — GitHub Actions runs lint, typecheck, tests, and build on every PR.
+- **SEO** — per-route metadata, OpenGraph/Twitter cards, JSON-LD, sitemap, robots.
 
 ## Architecture
 
-```
-Browser ──upload──▶  /api/classify  (Next.js Node serverless function)
+```text
+Browser ──upload──▶  POST /api/classify  (Next.js Node serverless function)
+                       0. (optional) verify Bearer API key → tenant context
                        1. validate + downscale (sharp)
                        2. Bedrock InvokeModel — Claude vision → {verdict, confidence, rationale}
                        3. put thumbnail  → S3
-                       4. put record     → DynamoDB
+                       4. put record     → DynamoDB (with byCreatedAt GSI key)
                        5. return verdict JSON
 Browser ◀── verdict ──┘
 
-/dashboard ──▶ /api/records ──▶ DynamoDB scan → stats + recent records
-                                 S3 presigned GET URLs for thumbnails
+/dashboard ──▶ GET /api/records ──▶ DynamoDB Query (byCreatedAt GSI) → stats + page
+                                     S3 presigned GET URLs for thumbnails
+
+/login,/register ──▶ /api/auth/* ──▶ Cognito (SignUp / ConfirmSignUp / InitiateAuth)
+                                      ID token stored in an httpOnly cookie,
+                                      verified against the Cognito JWKS
+
+/keys ──▶ /api/keys ──▶ DynamoDB apikeys table (byTenant GSI); raw key shown once
 ```
 
-AWS credentials live **only** on the server (Next.js API routes / Vercel
-functions). The browser never sees them.
+AWS credentials live **only** on the server. The browser never sees them.
 
 ### Stack
 - **Next.js 16** (App Router) + **TypeScript** + **Tailwind CSS v4**
 - **Amazon Bedrock** — Claude Haiku 4.5 vision (region `eu-west-2`)
-- **Amazon DynamoDB** — classification audit log
+- **Amazon Cognito** — user authentication
+- **Amazon DynamoDB** — classifications (byCreatedAt GSI), API keys (byTenant GSI), leads
 - **Amazon S3** — thumbnail retention (private, presigned reads)
 - **sharp** — server-side image downscaling
-- **CloudFormation** — infrastructure as code (`infra/template.yaml`)
+- **CloudFormation** — infrastructure as code ([`infra/template.yaml`](infra/template.yaml))
+- **Vitest** + **Cypress** — testing · **GitHub Actions** — CI
 - Deployed on **Vercel**
+
+## Using the API
+
+Programmatic access uses a Bearer API key minted at `/keys`:
+
+```bash
+curl -X POST https://seefood-hotdog-classifier.vercel.app/api/classify \
+  -H "Authorization: Bearer $SEEFOOD_API_KEY" \
+  -F "image=@lunch.jpg"
+```
+
+```json
+{
+  "id": "a940a853-…",
+  "verdict": "HOT_DOG",
+  "confidence": 95,
+  "rationale": "Image shows a cooked sausage with mustard in a sliced bun.",
+  "latencyMs": 1997,
+  "modelId": "eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "createdAt": "2026-07-13T12:58:33.211Z"
+}
+```
+
+> The endpoint currently also accepts unauthenticated requests (evaluation mode).
+> A supplied key must be valid; an invalid/revoked key returns 401.
 
 ## Infrastructure as Code
 
-The DynamoDB table and S3 bucket are defined in
-[`infra/template.yaml`](infra/template.yaml) (PAY_PER_REQUEST table with SSE and
-point-in-time recovery; private bucket with public-access-block, SSE, and a
-90-day lifecycle rule). Deploy the stack:
+All AWS resources are defined in [`infra/template.yaml`](infra/template.yaml)
+(DynamoDB tables with GSIs + SSE + PITR; private S3 bucket with public-access-block,
+SSE, and a 90-day lifecycle; Cognito user pool + app client). Deploy / update:
 
 ```bash
 aws cloudformation deploy \
   --template-file infra/template.yaml \
   --stack-name seefood \
-  --region eu-west-2
+  --region eu-west-2 \
+  --capabilities CAPABILITY_NAMED_IAM
 
-# Read back the resource names for your env vars
 aws cloudformation describe-stacks --stack-name seefood \
   --region eu-west-2 --query "Stacks[0].Outputs"
 ```
 
-Bedrock is a managed service and needs no resources — the app invokes it
-directly with IAM credentials.
+Bedrock is a managed service and needs no resources — the app invokes it directly.
 
 ## Local development
 
 ```bash
-cp .env.example .env.local        # fill in AWS credentials
+cp .env.example .env.local        # fill in AWS credentials + stack outputs
 npm install
 npm run dev                       # http://localhost:3000
 ```
 
+### Testing
+
+```bash
+npm test              # Vitest: unit + integration (AWS SDK mocked)
+npm run test:watch    # watch mode
+npm run e2e:open      # Cypress interactive (needs the dev server running)
+npm run e2e           # Cypress headless
+```
+
+CI (`.github/workflows/ci.yml`) runs `lint`, `typecheck`, `test`, and `build` on
+every PR; unit + integration tests are enforced with a 90% coverage threshold.
+Cypress E2E is configured for local runs.
+
 ### Environment variables
 
-| Variable                | Purpose                                            |
-| ----------------------- | -------------------------------------------------- |
-| `AWS_REGION`            | AWS region (default `eu-west-2`)                   |
-| `AWS_ACCESS_KEY_ID`     | IAM credentials for Bedrock / DynamoDB / S3        |
-| `AWS_SECRET_ACCESS_KEY` | IAM secret                                         |
-| `BEDROCK_MODEL_ID`      | Inference-profile model id (e.g. `eu.anthropic.claude-haiku-4-5-20251001-v1:0`) |
-| `DDB_TABLE`             | DynamoDB table name (CloudFormation output)        |
-| `S3_BUCKET`             | S3 bucket name (CloudFormation output)             |
+| Variable | Purpose |
+| ---------------------------- | ------------------------------------------- |
+| `AWS_REGION` | AWS region (`eu-west-2`) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | IAM credentials (local) |
+| `BEDROCK_MODEL_ID` | Inference-profile model id (e.g. `eu.anthropic.claude-haiku-4-5-20251001-v1:0`) |
+| `DDB_TABLE` | Classifications table |
+| `S3_BUCKET` | Thumbnail bucket |
+| `LEADS_TABLE` | Leads table |
+| `APIKEYS_TABLE` | API-keys table |
+| `COGNITO_USER_POOL_ID` / `COGNITO_CLIENT_ID` / `COGNITO_REGION` | Cognito config |
+| `MAGNIFIC_API_KEY` | (offline only) marketing-image generation |
 
-> **Note on Bedrock model ids:** newer models require an *inference-profile* id
-> (region-prefixed, e.g. `eu.anthropic.…`), not the bare `anthropic.…` id. The
-> bare id fails with "on-demand throughput isn't supported."
-
-The required IAM permissions are: `bedrock:InvokeModel`, `dynamodb:PutItem`,
-`dynamodb:Scan`, `s3:PutObject`, and `s3:GetObject`.
+> **Vercel note:** `AWS_*` / `AWS_REGION` are reserved on Vercel. Use the
+> `APP_AWS_*` equivalents — [`lib/aws.ts`](lib/aws.ts) reads those first.
+>
+> **Bedrock note:** newer models require an *inference-profile* id (region-prefixed,
+> e.g. `eu.anthropic.…`), not the bare `anthropic.…` id.
 
 ## Product decisions
 
-- **A verdict, not just a boolean.** Every classification carries a confidence
-  score and a plain-language rationale — the difference between a toy and a
-  product a business could actually audit.
-- **Audit-first.** Enterprises need a paper trail. Every classification is
-  logged; the dashboard turns that log into operational insight.
-- **Privacy stance.** We retain only a downscaled thumbnail, never the original
-  upload — a defensible position for a real product, and cheaper to store.
-- **Deterministic model settings.** `temperature: 0` and a strict JSON contract
-  make verdicts reproducible and machine-parseable.
+- **A verdict, not just a boolean** — confidence + rationale make it auditable.
+- **Audit-first** — every classification is logged; the dashboard turns the log
+  into operational insight.
+- **Privacy stance** — only a downscaled thumbnail is retained, never the original.
+- **Deterministic model settings** — `temperature: 0` + a strict JSON contract.
+- **AWS-native throughout** — one credential set powers vision, auth, storage,
+  and data; consistent and easy to reason about.
 
-## Known limitations & next steps
+## Roadmap (next)
 
-- **DynamoDB `Scan`** powers the dashboard. Fine at demo scale; the production
-  path is a GSI keyed on a date bucket (e.g. `createdDate`) to query recent
-  records and paginate without a full-table scan.
-- **No authentication.** A real deployment would gate the app and the audit log
-  behind SSO and per-tenant isolation.
-- **No rate limiting.** The classify endpoint validates type/size but would need
-  a per-client quota in production.
-- **Single region.** Bedrock model availability is region-specific; the model id
+See [`ROADMAP.md`](ROADMAP.md) for the full plan. Near-term:
+- **Rate limiting** on `/api/classify` (per-tenant, DynamoDB fixed-window).
+- **Scoped IAM** — replace the shared IAM user with a least-privilege role.
+- **Eval harness** — labeled fixtures + tracked accuracy on prompt/model changes.
+- **Human feedback** (👍/👎) → review queue; **batch upload**; **audit CSV export**;
+  **webhooks**; **dark mode + a11y pass**.
+
+## Known limitations
+
+- **Auth scope** — email/password via Cognito is live; social/enterprise SSO,
+  password-reset UX, and per-tenant dashboard scoping are future work.
+- **No rate limiting yet** — the classify endpoint validates type/size but has no
+  per-client quota (next on the roadmap).
+- **Dashboard stats** aggregate all rows via the GSI; at very large scale this
+  moves to a maintained counter item.
+- **Single region** — Bedrock model availability is region-specific; the model id
   is env-configurable so the region is swappable.
-
-See [`ROADMAP.md`](ROADMAP.md) for how each of these — and the product beyond the
-MVP — is sequenced across future phases.
