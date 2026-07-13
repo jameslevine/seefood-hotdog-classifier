@@ -47,3 +47,6 @@ dashboard.png
 verdict.png
 .playwright-mcp/
 live-dashboard.png
+
+# root screenshots
+/*.png
