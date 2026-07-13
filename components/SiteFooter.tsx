@@ -1,6 +1,10 @@
+import Link from "next/link";
 import { Logo } from "./Logo";
 
 const BADGES = ["SOC 2 Type II", "GDPR Ready", "ISO 27001", "99.9% SLA"];
+
+// Footer items may be a plain label (placeholder) or a { label, href } link.
+type FooterItem = string | { label: string; href: string };
 
 export function SiteFooter() {
   return (
@@ -17,15 +21,30 @@ export function SiteFooter() {
           <div className="grid grid-cols-2 gap-x-12 gap-y-2 text-sm sm:grid-cols-3">
             <FooterCol
               title="Product"
-              items={["Classify", "Dashboard", "API", "Pricing"]}
+              items={[
+                { label: "Classify", href: "/app" },
+                { label: "Dashboard", href: "/dashboard" },
+                { label: "API", href: "/api-access" },
+                "Pricing",
+              ]}
             />
             <FooterCol
               title="Company"
-              items={["About", "Careers", "Press", "Contact"]}
+              items={[
+                "About",
+                "Careers",
+                "Press",
+                { label: "Contact", href: "/contact" },
+              ]}
             />
             <FooterCol
-              title="Legal"
-              items={["Privacy", "Terms", "DPA", "Security"]}
+              title="Resources"
+              items={[
+                { label: "Brand", href: "/brand" },
+                "Privacy",
+                "Terms",
+                "Security",
+              ]}
             />
           </div>
         </div>
@@ -51,17 +70,30 @@ export function SiteFooter() {
   );
 }
 
-function FooterCol({ title, items }: { title: string; items: string[] }) {
+function FooterCol({ title, items }: { title: string; items: FooterItem[] }) {
   return (
     <div className="flex flex-col gap-2">
       <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
         {title}
       </span>
-      {items.map((i) => (
-        <span key={i} className="text-muted">
-          {i}
-        </span>
-      ))}
+      {items.map((i) => {
+        if (typeof i === "string") {
+          return (
+            <span key={i} className="text-muted">
+              {i}
+            </span>
+          );
+        }
+        return (
+          <Link
+            key={i.href}
+            href={i.href}
+            className="text-muted transition-colors hover:text-foreground"
+          >
+            {i.label}
+          </Link>
+        );
+      })}
     </div>
   );
 }

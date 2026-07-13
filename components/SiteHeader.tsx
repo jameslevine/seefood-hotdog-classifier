@@ -9,13 +9,15 @@ export function SiteHeader() {
           <Logo />
         </Link>
         <nav className="flex items-center gap-1 text-sm font-medium">
-          <NavLink href="/">Classify</NavLink>
+          <NavLink href="/app">Classify</NavLink>
           <NavLink href="/dashboard">Dashboard</NavLink>
           <NavLink href="/api-access">API</NavLink>
-          <span className="ml-2 hidden items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs text-muted md:inline-flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-positive" />
-            All systems operational
-          </span>
+          <Link
+            href="/app"
+            className="ml-2 rounded-md bg-brand px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+          >
+            Get started
+          </Link>
         </nav>
       </div>
     </header>

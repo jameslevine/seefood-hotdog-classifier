@@ -39,6 +39,29 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
+  LeadsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${AppName}-leads"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Application
+          Value: !Ref AppName
+        - Key: ManagedBy
+          Value: CloudFormation
+
   ThumbnailsBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
@@ -72,3 +95,6 @@ Outputs:
   BucketName:
     Description: S3 bucket name (set as S3_BUCKET)
     Value: !Ref ThumbnailsBucket
+  LeadsTableName:
+    Description: DynamoDB leads table name (set as LEADS_TABLE)
+    Value: !Ref LeadsTable
