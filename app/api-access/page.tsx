@@ -125,7 +125,7 @@ export default function ApiAccessPage() {
         described here as the production contract; the live endpoint is
         currently open for evaluation.{" "}
         <Link
-          href="/"
+          href="/app"
           className="font-medium text-brand-accent underline underline-offset-2"
         >
           Try the classifier →
