@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  SeeFood — enterprise Hot Dog / Not Hot Dog classifier. Backing stores for the
+  classification audit log (DynamoDB) and thumbnail retention (S3).
+  Bedrock (Claude vision) is a managed service and needs no resources here; the
+  application invokes it directly with IAM credentials.
+
+Parameters:
+  AppName:
+    Type: String
+    Default: seefood
+    Description: Prefix applied to created resource names.
+  ThumbnailRetentionDays:
+    Type: Number
+    Default: 90
+    Description: Days after which retained thumbnails are automatically deleted.
+
+Resources:
+  ClassificationsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${AppName}-classifications"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Application
+          Value: !Ref AppName
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  ThumbnailsBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "${AppName}-thumbnails-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireThumbnails
+            Status: Enabled
+            ExpirationInDays: !Ref ThumbnailRetentionDays
+      Tags:
+        - Key: Application
+          Value: !Ref AppName
+        - Key: ManagedBy
+          Value: CloudFormation
+
+Outputs:
+  TableName:
+    Description: DynamoDB table name (set as DDB_TABLE)
+    Value: !Ref ClassificationsTable
+  BucketName:
+    Description: S3 bucket name (set as S3_BUCKET)
+    Value: !Ref ThumbnailsBucket
