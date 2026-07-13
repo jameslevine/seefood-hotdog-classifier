@@ -13,7 +13,8 @@ export async function GET(req: Request) {
       200,
       Math.max(1, Number(searchParams.get("limit")) || 50),
     );
-    const page = await listClassifications(limit);
+    const cursor = searchParams.get("cursor");
+    const page = await listClassifications(limit, cursor);
     return NextResponse.json(page);
   } catch (e) {
     console.error("records error", e);

@@ -26,20 +26,28 @@ interface Stats {
   avgLatencyMs: number;
 }
 
+const PAGE_SIZE = 25;
+
 export function Dashboard() {
   const [records, setRecords] = useState<Record[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
 
+  // Load the first page (also used by the Refresh button); replaces state.
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/records?limit=100", { cache: "no-store" });
+      const res = await fetch(`/api/records?limit=${PAGE_SIZE}`, {
+        cache: "no-store",
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to load records.");
       setRecords(data.records);
       setStats(data.stats);
+      setCursor(data.nextCursor ?? null);
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load records.");
@@ -48,11 +56,31 @@ export function Dashboard() {
     }
   }, []);
 
+  // Fetch the next page and append; keeps stats from the first load.
+  const loadMore = useCallback(async () => {
+    if (!cursor) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(
+        `/api/records?limit=${PAGE_SIZE}&cursor=${encodeURIComponent(cursor)}`,
+        { cache: "no-store" },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Failed to load more.");
+      setRecords((prev) => [...prev, ...data.records]);
+      setCursor(data.nextCursor ?? null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load more.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [cursor]);
+
   useEffect(() => {
     let active = true;
     void (async () => {
       try {
-        const res = await fetch("/api/records?limit=100", {
+        const res = await fetch(`/api/records?limit=${PAGE_SIZE}`, {
           cache: "no-store",
         });
         const data = await res.json();
@@ -60,6 +88,7 @@ export function Dashboard() {
         if (!res.ok) throw new Error(data?.error || "Failed to load records.");
         setRecords(data.records);
         setStats(data.stats);
+        setCursor(data.nextCursor ?? null);
         setError("");
       } catch (e) {
         if (active)
@@ -226,6 +255,18 @@ export function Dashboard() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {cursor && records.length > 0 && (
+          <div className="border-t border-border p-4 text-center">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-background disabled:opacity-60"
+            >
+              {loadingMore ? "Loading…" : "Load more"}
+            </button>
           </div>
         )}
       </div>
