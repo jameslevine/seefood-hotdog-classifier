@@ -10,7 +10,7 @@ import {
   putThumbnail,
   type ClassificationRecord,
 } from "@/lib/store";
-import { verifyApiKey } from "@/lib/auth";
+import { authorizeRequest } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -20,21 +20,16 @@ const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 export async function POST(req: Request) {
   const startedAt = Date.now();
   try {
-    // Optional API-key auth: if a Bearer key is supplied it must be valid, and
-    // the classification is attributed to that tenant. Absent = open access
-    // (evaluation mode). A revoked/invalid key is rejected.
-    let tenantId: string | undefined;
-    const hasBearer = /^Bearer\s+/i.test(req.headers.get("authorization") || "");
-    if (hasBearer) {
-      const ctx = await verifyApiKey(req);
-      if (!ctx) {
-        return NextResponse.json(
-          { error: "Invalid or revoked API key." },
-          { status: 401 },
-        );
-      }
-      tenantId = ctx.tenantId;
+    // Require auth: a signed-in session (browser) OR a valid Bearer API key
+    // (programmatic). The classification is attributed to the tenant.
+    const ctx = await authorizeRequest(req);
+    if (!ctx) {
+      return NextResponse.json(
+        { error: "Authentication required. Sign in or supply a valid API key." },
+        { status: 401 },
+      );
     }
+    const tenantId = ctx.tenantId;
 
     const form = await req.formData();
     const file = form.get("image");

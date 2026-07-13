@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
+import { getSession } from "@/lib/auth";
+import { LogoutButton } from "./LogoutButton";
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const user = await getSession();
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-surface/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
@@ -12,13 +16,17 @@ export function SiteHeader() {
           <NavLink href="/app">Classify</NavLink>
           <NavLink href="/dashboard">Dashboard</NavLink>
           <NavLink href="/api-access">API</NavLink>
-          <NavLink href="/keys">Keys</NavLink>
-          <Link
-            href="/login"
-            className="ml-2 rounded-md bg-brand px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
-          >
-            Sign in
-          </Link>
+          {user && <NavLink href="/keys">Keys</NavLink>}
+          {user ? (
+            <LogoutButton />
+          ) : (
+            <Link
+              href="/login"
+              className="ml-2 rounded-md bg-brand px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
+            >
+              Sign in
+            </Link>
+          )}
         </nav>
       </div>
     </header>

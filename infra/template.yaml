@@ -127,6 +127,9 @@ Resources:
         - email
       AutoVerifiedAttributes:
         - email
+      # Allow public self-service registration (default is admin-create-only).
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
       Schema:
         - Name: tenantId
           AttributeDataType: String

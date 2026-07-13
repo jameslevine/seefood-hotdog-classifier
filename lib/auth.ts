@@ -223,6 +223,18 @@ export async function revokeApiKey(
   );
 }
 
+/**
+ * Authorize an API request via EITHER a signed-in session (browser, cookie) OR
+ * a Bearer API key (programmatic). Returns tenant context or null if neither.
+ */
+export async function authorizeRequest(
+  req: Request,
+): Promise<{ tenantId: string; sub: string } | null> {
+  const session = await getSession();
+  if (session) return { tenantId: session.tenantId, sub: session.sub };
+  return verifyApiKey(req);
+}
+
 /** Verify a Bearer API key from a request. Returns tenant context or null. */
 export async function verifyApiKey(
   req: Request,

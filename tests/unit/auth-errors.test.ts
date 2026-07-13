@@ -9,11 +9,17 @@ describe("mapCognitoError", () => {
     });
   });
 
-  it("uses the same generic message for wrong password and unknown user", () => {
-    const a = mapCognitoError({ name: "NotAuthorizedException" });
-    const b = mapCognitoError({ name: "UserNotFoundException" });
+  it("uses the same generic message for wrong password and unknown user on login", () => {
+    const a = mapCognitoError({ name: "NotAuthorizedException" }, "login");
+    const b = mapCognitoError({ name: "UserNotFoundException" }, "login");
     expect(a.status).toBe(401);
     expect(a.message).toBe(b.message); // no user-enumeration
+  });
+
+  it("treats NotAuthorizedException as a config error on signup, not bad credentials", () => {
+    const r = mapCognitoError({ name: "NotAuthorizedException" }, "signup");
+    expect(r.status).toBe(403);
+    expect(r.message).not.toMatch(/password/i);
   });
 
   it("maps rate-limit exceptions to 429", () => {

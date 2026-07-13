@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     );
     return NextResponse.json({ ok: true, userConfirmed });
   } catch (e) {
-    const { status, message } = mapCognitoError(e);
+    const { status, message } = mapCognitoError(e, "signup");
     return NextResponse.json({ error: message }, { status });
   }
 }

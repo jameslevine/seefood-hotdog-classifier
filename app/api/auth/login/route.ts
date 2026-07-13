@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     await createSession(tokens);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    const { status, message } = mapCognitoError(e);
+    const { status, message } = mapCognitoError(e, "login");
     return NextResponse.json({ error: message }, { status });
   }
 }

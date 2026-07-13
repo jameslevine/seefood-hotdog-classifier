@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Classifier } from "@/components/Classifier";
+import { getSession } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Classify — SeeFood™",
@@ -8,7 +10,11 @@ export const metadata: Metadata = {
     "Upload an image and receive a definitive Hot Dog / Not Hot Dog verdict with a confidence score and rationale.",
 };
 
-export default function ClassifyApp() {
+export const dynamic = "force-dynamic";
+
+export default async function ClassifyApp() {
+  const user = await getSession();
+  if (!user) redirect("/login?next=/app");
   return (
     <div>
       {/* Hero */}
