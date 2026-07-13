@@ -123,3 +123,6 @@ The required IAM permissions are: `bedrock:InvokeModel`, `dynamodb:PutItem`,
   a per-client quota in production.
 - **Single region.** Bedrock model availability is region-specific; the model id
   is env-configurable so the region is swappable.
+
+See [`ROADMAP.md`](ROADMAP.md) for how each of these — and the product beyond the
+MVP — is sequenced across future phases.
