@@ -9,6 +9,7 @@ import { S3Client } from "@aws-sdk/client-s3";
 export const REGION =
   process.env.APP_AWS_REGION || process.env.AWS_REGION || "eu-west-2";
 export const DDB_TABLE = process.env.DDB_TABLE || "hotdog-classifications";
+export const LEADS_TABLE = process.env.LEADS_TABLE || "seefood-leads";
 export const S3_BUCKET = process.env.S3_BUCKET || "";
 export const BEDROCK_MODEL_ID =
   process.env.BEDROCK_MODEL_ID ||
