@@ -5,12 +5,18 @@ import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { S3Client } from "@aws-sdk/client-s3";
+import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
 
 export const REGION =
   process.env.APP_AWS_REGION || process.env.AWS_REGION || "eu-west-2";
 export const DDB_TABLE = process.env.DDB_TABLE || "hotdog-classifications";
 export const LEADS_TABLE = process.env.LEADS_TABLE || "seefood-leads";
+export const APIKEYS_TABLE = process.env.APIKEYS_TABLE || "seefood-apikeys";
 export const S3_BUCKET = process.env.S3_BUCKET || "";
+export const COGNITO_REGION =
+  process.env.COGNITO_REGION || process.env.APP_AWS_REGION || REGION;
+export const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID || "";
+export const COGNITO_CLIENT_ID = process.env.COGNITO_CLIENT_ID || "";
 export const BEDROCK_MODEL_ID =
   process.env.BEDROCK_MODEL_ID ||
   "eu.anthropic.claude-haiku-4-5-20251001-v1:0";
@@ -53,4 +59,13 @@ export function ddb(): DynamoDBDocumentClient {
 let _s3: S3Client | undefined;
 export function s3(): S3Client {
   return (_s3 ??= new S3Client({ region: REGION, ...credentials() }));
+}
+
+// Cognito SignUp/InitiateAuth are unauthenticated public API calls, so no
+// credentials are needed; only the region matters.
+let _cognito: CognitoIdentityProviderClient | undefined;
+export function cognito(): CognitoIdentityProviderClient {
+  return (_cognito ??= new CognitoIdentityProviderClient({
+    region: COGNITO_REGION,
+  }));
 }

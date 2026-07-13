@@ -24,6 +24,7 @@ export interface ClassificationRecord {
   contentType?: string;
   width?: number;
   height?: number;
+  tenantId?: string; // set when classified via an API key
   gsi1pk?: string; // constant, powers the byCreatedAt index
 }
 

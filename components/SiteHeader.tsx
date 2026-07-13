@@ -12,11 +12,12 @@ export function SiteHeader() {
           <NavLink href="/app">Classify</NavLink>
           <NavLink href="/dashboard">Dashboard</NavLink>
           <NavLink href="/api-access">API</NavLink>
+          <NavLink href="/keys">Keys</NavLink>
           <Link
-            href="/app"
+            href="/login"
             className="ml-2 rounded-md bg-brand px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90"
           >
-            Get started
+            Sign in
           </Link>
         </nav>
       </div>
