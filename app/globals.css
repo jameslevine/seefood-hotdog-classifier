@@ -6,6 +6,9 @@
  * indigo accent, plus semantic verdict colors.
  * ------------------------------------------------------------------ */
 :root {
+  /* Palette — slate/navy neutrals + one indigo accent + semantic verdict colors.
+     These are the ONLY colors in the system; components must not introduce new
+     hex values. See BRAND.md for roles and usage. */
   --background: #f6f7f9;
   --surface: #ffffff;
   --foreground: #0f172a;
@@ -17,6 +20,17 @@
   --positive-bg: #f0fdf4;
   --negative: #b91c1c;
   --negative-bg: #fef2f2;
+
+  /* Radius scale */
+  --radius-sm: 0.375rem; /* 6px  — chips, small controls */
+  --radius-md: 0.5rem; /* 8px  — buttons, inputs */
+  --radius-lg: 0.75rem; /* 12px — cards, panels */
+  --radius-xl: 1rem; /* 16px — hero surfaces */
+
+  /* Elevation scale — soft, enterprise-neutral shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  --shadow-md: 0 4px 12px -2px rgb(15 23 42 / 0.08);
+  --shadow-lg: 0 12px 32px -8px rgb(15 23 42 / 0.12);
 }
 
 @theme inline {
@@ -33,6 +47,16 @@
   --color-negative-bg: var(--negative-bg);
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Map the radius + shadow scales onto Tailwind's utilities so `rounded-lg`,
+     `shadow-md`, etc. resolve to the brand tokens. */
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
 }
 
 body {
