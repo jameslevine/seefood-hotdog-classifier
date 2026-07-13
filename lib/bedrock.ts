@@ -41,7 +41,7 @@ export function isSupportedMediaType(contentType: string): boolean {
 }
 
 /** Pull the first {...} JSON object out of arbitrary model text. */
-function extractJson(text: string): Record<string, unknown> | null {
+export function extractJson(text: string): Record<string, unknown> | null {
   const fenced = text.replace(/```(?:json)?/gi, "").trim();
   const start = fenced.indexOf("{");
   const end = fenced.lastIndexOf("}");
@@ -53,7 +53,7 @@ function extractJson(text: string): Record<string, unknown> | null {
   }
 }
 
-function clampConfidence(v: unknown): number {
+export function clampConfidence(v: unknown): number {
   const n = typeof v === "number" ? v : Number(v);
   if (!Number.isFinite(n)) return 75;
   return Math.max(0, Math.min(100, Math.round(n)));
