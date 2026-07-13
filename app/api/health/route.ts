@@ -7,8 +7,10 @@ export const runtime = "nodejs";
 // present without exposing secret values.
 export async function GET() {
   const configured =
-    !!process.env.AWS_ACCESS_KEY_ID &&
-    !!process.env.AWS_SECRET_ACCESS_KEY &&
+    !!(process.env.APP_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID) &&
+    !!(
+      process.env.APP_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY
+    ) &&
     !!process.env.S3_BUCKET &&
     !!process.env.DDB_TABLE;
 
