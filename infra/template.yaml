@@ -26,9 +26,25 @@ Resources:
       AttributeDefinitions:
         - AttributeName: id
           AttributeType: S
+        - AttributeName: gsi1pk
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
       KeySchema:
         - AttributeName: id
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        # Query recent classifications by time without a full-table scan.
+        # gsi1pk is a constant partition ("CLASSIFICATION") so createdAt sorts
+        # the whole set; ScanIndexForward:false yields newest-first + pagination.
+        - IndexName: byCreatedAt
+          KeySchema:
+            - AttributeName: gsi1pk
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
@@ -61,6 +77,93 @@ Resources:
           Value: !Ref AppName
         - Key: ManagedBy
           Value: CloudFormation
+
+  ApiKeysTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${AppName}-apikeys"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: keyHash
+          AttributeType: S
+        - AttributeName: tenantId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: keyHash
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        # List a tenant's keys (for the /keys management UI) without a scan.
+        - IndexName: byTenant
+          KeySchema:
+            - AttributeName: tenantId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Application
+          Value: !Ref AppName
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Cognito user pool — human authentication for the app UI. API keys (above)
+  # handle machine-to-machine access to /api/classify.
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: !Sub "${AppName}-users"
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Schema:
+        - Name: tenantId
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireLowercase: true
+          RequireUppercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      UserPoolTags:
+        Application: !Ref AppName
+        ManagedBy: CloudFormation
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${AppName}-web"
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      PreventUserExistenceErrors: ENABLED
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      RefreshTokenValidity: 30
+      TokenValidityUnits:
+        AccessToken: minutes
+        IdToken: minutes
+        RefreshToken: days
 
   ThumbnailsBucket:
     Type: AWS::S3::Bucket
@@ -98,3 +201,12 @@ Outputs:
   LeadsTableName:
     Description: DynamoDB leads table name (set as LEADS_TABLE)
     Value: !Ref LeadsTable
+  ApiKeysTableName:
+    Description: DynamoDB API-keys table name (set as APIKEYS_TABLE)
+    Value: !Ref ApiKeysTable
+  UserPoolId:
+    Description: Cognito User Pool ID (set as COGNITO_USER_POOL_ID)
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID (set as COGNITO_CLIENT_ID)
+    Value: !Ref UserPoolClient
