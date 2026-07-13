@@ -11,9 +11,7 @@ export function SiteHeader() {
         <nav className="flex items-center gap-1 text-sm font-medium">
           <NavLink href="/">Classify</NavLink>
           <NavLink href="/dashboard">Dashboard</NavLink>
-          <span className="hidden rounded-md px-3 py-2 text-muted/70 sm:block">
-            Docs
-          </span>
+          <NavLink href="/api-access">API</NavLink>
           <span className="ml-2 hidden items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs text-muted md:inline-flex">
             <span className="h-1.5 w-1.5 rounded-full bg-positive" />
             All systems operational
