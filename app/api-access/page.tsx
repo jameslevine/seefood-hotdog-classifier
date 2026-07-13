@@ -120,10 +120,13 @@ export default function ApiAccessPage() {
       </section>
 
       <div className="mt-10 rounded-xl border border-border bg-surface p-5 text-sm text-muted">
-        <span className="font-semibold text-foreground">Note:</span> this is a
-        demonstration page. Authentication and per-key rate limiting are
-        described here as the production contract; the live endpoint is
-        currently open for evaluation.{" "}
+        <span className="font-semibold text-foreground">Note:</span> the API
+        requires authentication. Create a free account, then mint a key on the{" "}
+        <Link href="/keys" className="font-medium text-brand-accent underline underline-offset-2">
+          API Keys
+        </Link>{" "}
+        page and pass it as a Bearer token. Per-key rate limiting is on the
+        roadmap.{" "}
         <Link
           href="/app"
           className="font-medium text-brand-accent underline underline-offset-2"

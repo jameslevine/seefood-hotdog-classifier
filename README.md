@@ -111,8 +111,10 @@ curl -X POST https://seefood-hotdog-classifier.vercel.app/api/classify \
 }
 ```
 
-> The endpoint currently also accepts unauthenticated requests (evaluation mode).
-> A supplied key must be valid; an invalid/revoked key returns 401.
+> The app requires authentication. Browser sessions use Cognito (sign in at
+> `/login`); programmatic clients pass a Bearer API key minted at `/keys`. The
+> classifier UI, dashboard, and their APIs all return 401 / redirect to login
+> when unauthenticated. Marketing, docs, auth, and contact routes stay public.
 
 ## Infrastructure as Code
 
