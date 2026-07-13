@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+        env:
+          # Build must not depend on real secrets. Values are placeholders; the
+          # app reads real config from env at runtime, not build time.
+          AWS_REGION: eu-west-2
+          BEDROCK_MODEL_ID: eu.anthropic.claude-haiku-4-5-20251001-v1:0
+          DDB_TABLE: seefood-classifications
+          S3_BUCKET: placeholder
+          LEADS_TABLE: seefood-leads
